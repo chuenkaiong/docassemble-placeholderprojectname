@@ -1,0 +1,16 @@
+metadata:
+  title: |
+    Title
+  short title: |
+    Short title 
+  description: |
+    Description
+  authors:
+    - name: David Li
+      organization: COR-LAW-2215 Digital Intelligence for Lawyers
+    - name: Zhang Yuqian
+      organization: COR-LAW-2215 Digital Intelligence for Lawyers
+    - name: Ong Chuen Kai
+      organization: COR-LAW-2215 Digital Intelligence for Lawyers
+  revision_date: 2020-10-12
+---
