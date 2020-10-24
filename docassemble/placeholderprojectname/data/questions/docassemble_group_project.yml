@@ -1,0 +1,50 @@
+metadata:
+  title: |
+    Title
+  short title: |
+    Short title 
+  description: |
+    Description
+  authors:
+    - name: David Li
+      organization: COR-LAW-2215 Digital Intelligence for Lawyers
+    - name: Zhang Yuqian
+      organization: COR-LAW-2215 Digital Intelligence for Lawyers
+    - name: Ong Chuen Kai
+      organization: COR-LAW-2215 Digital Intelligence for Lawyers
+  revision_date: 2020-10-12
+---
+modules:
+  .validation
+---
+objects:
+  applicant: Individual
+  coApplicant: Individual
+  child: Individual
+---
+mandatory: True
+code: |
+  applicant.isForeigner = False
+  if applicant.nationality != "SG":
+    applicant.isForeigner = True
+  
+  if applicant.isForeigner: 
+    foreignerpage
+  else: 
+    localpage
+
+---
+question: Applicant details 
+fields:   
+  - Country: applicant.nationality
+    code: | 
+      countries_list()
+---
+question: Foreigner ${applicant.nationality}
+event: foreignerpage
+---
+question: Local
+event: localpage
+
+
+
