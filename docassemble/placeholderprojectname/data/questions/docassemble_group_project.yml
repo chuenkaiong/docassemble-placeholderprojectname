@@ -14,3 +14,106 @@ metadata:
       organization: COR-LAW-2215 Digital Intelligence for Lawyers
   revision_date: 2020-10-12
 ---
+<<<<<<< HEAD
+=======
+modules:
+  .validation
+---
+objects:
+  applicant: Individual
+  spouse: Individual
+  child: Individual
+  co_resident: Individual
+---
+mandatory: True
+code: |
+  applicant.isForeigner = False
+  if applicant.nationality != "SG":
+    applicant.isForeigner = True
+  
+  if applicant.is_applying_with_spouse:
+    if not spouse.consents:
+      rejectionPage
+  summaryPage
+
+---
+question: Your Details
+fields:
+  - "First Name": applicant.name.first
+    datatype: text
+  - "Last Name": applicant.name.last
+    datatype: text
+  - "Age": applicant.age
+    datatype: integer
+  - "Gender": applicant.gender
+    input type: radio
+    choices:
+      - Male
+      - Female
+  - "Nationality": applicant.nationality
+    code: | 
+      countries_list()
+  - "NRIC/FIN No.": applicant.nric
+  - "Residential address": applicant.address
+    address autocomplete: True
+  - "Is there anyone who resides in this address together with you?": co_resident
+    datatype: yesnoradio
+  - "Co-resident name": co_resident.name
+    datatype: text
+    show if: co_resident
+  - "Occupation": applicant.occupation
+    datatype: text
+  - "Is there any special relationship between you and the child you want to adopt?": relationship
+    datatype: text
+---
+question: |
+  Spouse Information
+fields:
+  - "Are you applying on your own or together with your spouse?": applicant.is_applying_with_spouse
+    input type: radio
+    choices:
+      - I am applying on my own: False
+      - I am applying with my spouse: True
+  - "First Name": spouse.name.first
+    datatype: text
+    show if: applicant.is_applying_with_spouse
+  - "Last Name": spouse.name.last
+    datatype: text
+    show if: applicant.is_applying_with_spouse
+  - "Age": spouse.age
+    datatype: integer
+    show if: applicant.is_applying_with_spouse
+  - "Gender": spouse.gender
+    input type: radio
+    choices:
+      - Male
+      - Female
+    show if: applicant.is_applying_with_spouse
+  - "Nationality": spouse.nationality
+    code: | 
+      countries_list()
+    show if: applicant.is_applying_with_spouse
+  - "NRIC/FIN": spouse.nric
+    show if: applicant.is_applying_with_spouse
+  - "Residential address": spouse.address
+    address autocomplete: True
+    show if: applicant.is_applying_with_spouse
+  - "Occupation": spouse.occupation
+    datatype: text
+    show if: applicant.is_applying_with_spouse
+  - "Is there any special relationship between you and the child you want to adopt?": spouse.relationship_with_child
+    datatype: text
+    show if: applicant.is_applying_with_spouse
+  - "Does your spouse consent to the adoption?": spouse.consents
+    datatype: yesnoradio
+    show if: applicant.is_applying_with_spouse
+---
+event: summaryPage
+question: Summary
+subquestion: ${applicant}
+
+---
+event: rejectionPage
+question: Rejection Page 
+subquestion: fill this in 
+>>>>>>> main
