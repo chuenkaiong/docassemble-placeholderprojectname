@@ -1,8 +1,10 @@
-# Docassemble Group Project - placeholder title 
+# Docassemble Group Project - placeholder title
 \[Project description]
 
 ## Introduction
 
-## Description 
+## Description
 
 ## How to use
+
+Booyakasha
