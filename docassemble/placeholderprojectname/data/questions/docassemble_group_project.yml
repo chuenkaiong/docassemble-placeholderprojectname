@@ -27,6 +27,9 @@ objects:
 ---
 mandatory: True
 code: |
+  # REMOVE THIS
+  payment = True
+  
   rejectionMsg = ""
   applicant.isForeigner = False
   if applicant.nationality != "SG":
@@ -41,8 +44,26 @@ code: |
   if child.nationality == "SG":
     child.birthcertificate_number
   
-  summaryPage
-
+  father.name.first
+  mother.name.first
+  
+  #if applicant.is_applying_with_spouse:
+  #  if child.nationality == "SG":
+  #    form_37_2app_childinsg
+  #  else:
+  #    form_37_2app_childoutsidesg
+  #else:
+  #  if child.nationality == "SG":
+  #    form_37_1app_childinsg
+  #  else:
+  #    form_37_1app_childoutsidesg
+  
+  if applicant.is_applying_with_spouse:
+    form_38_malefemale
+  elif applicant.gender == "Male":
+    form_38_male
+  else: 
+    form_38_female
 ---
 question: Your Details
 fields:
@@ -165,8 +186,63 @@ fields:
   - "Present address": child.address
     address autocomplete: True
     show if: applicant.hasSelectedChild
-  - "Is the child entitled to any property?": child.isEntitledToProperty
-    show if: applicant.hasSelectedChild
+  - "Is the child entitled to any property?": child.isEntitledToProperty 
+    datatype: yesnoradio
+  - "Is the child in the actual custody (or under the guardianship) of the Applicant(s)?": child_in_custody
+    datatype: yesnoradio
+  - "Whereabouts of the child?": whereabouts_child
+    datatype: text
+    show if:
+      variable: child_in_custody
+      is: False
+  - "Have the Applicant(s) been supporting the child?": support
+    datatype: yesnoradio
+  - "When did the Applicant(s) start supporting the child?": support_date
+    datatype: date
+    show if: support
+  - "Has the child been subject to an adoption order or of any application for an adoption order?": adoption_order
+    datatype: yesnoradio
+  - "State particulars": particulars_adoption_order
+    datatype: text
+    show if: adoption_order
+---
+question: |
+  Child's Natural Father's Information
+fields:
+  - "First Name": father.name.first
+    datatype: text
+  - "Last Name": father.name.last
+    datatype: text
+  - "I.D. No.": father.id
+    datatype: text
+  - "Address": father.address
+    address autocomplete: True
+  - "Nationality": father.nationality
+    code: | 
+      countries_list()
+  - "Religion": father.religion
+    datatype: text
+  - "Consent has been obtained": father.consent
+    datatype: yesnoradio
+---
+question: |
+  Child's Natural Mother's Information
+fields:
+  - "First Name": mother.name.first
+    datatype: text
+  - "Last Name": mother.name.last
+    datatype: text
+  - "I.D. No.": mother.id
+    datatype: text
+  - "Address": mother.address
+    address autocomplete: True
+  - "Nationality": mother.nationality
+    code: | 
+      countries_list()
+  - "Religion": mother.religion
+    datatype: text
+  - "Consent has been obtained": mother.consent
+    datatype: yesnoradio
 ---
 question: |
   Birth Certificate Information
@@ -189,3 +265,80 @@ question: Interview Paused
 review:
   - I have a child in mind: applicant.hasSelectedChild
     button: This interview will be paused until you select a child to adopt. Remember to login to save your answers before leaving this page!
+---
+event: form_37_1app_childinsg
+question: Here are your documents.
+subquestion: "Please save these and click 'Continue' for the next set of documents."
+attachment:
+  name: Form 37 (Originating Summons)
+  filename: Form 37
+  docx template file: form_37_1app_childinsg.docx
+  valid format:
+    - pdf
+    - docx
+---
+event: form_37_1app_childoutsidesg
+question: Here are your documents.
+subquestion: "Please save these and click 'Continue' for the next set of documents."
+attachment:
+  name: Form 37 (Originating Summons)
+  filename: Form 37
+  docx template file: form_37_1app_childoutsidesg.docx
+  valid format:
+    - pdf
+    - docx
+---
+event: form_37_2app_childinsg
+question: Here are your documents.
+subquestion: "Please save these and click 'Continue' for the next set of documents."
+attachment:
+  name: Form 37 (Originating Summons)
+  filename: Form 37
+  docx template file: form_37_2app_childinsg.docx
+  valid format:
+    - pdf
+    - docx
+---
+event: form_37_2app_childoutsidesg
+question: Here are your documents.
+subquestion: "Please save these and click 'Continue' for the next set of documents."
+attachment:
+  name: Form 37 (Originating Summons)
+  filename: Form 37
+  docx template file: form_37_2app_childoutsidesg.docx
+  valid format:
+    - pdf
+    - docx
+---
+event: form_38_malefemale
+question: Here are your documents.
+subquestion: "Please save these and click 'Continue' for the next set of documents."
+attachment:
+  name: Adoption Statement
+  filename: Form 38
+  docx template file: form_38_malefemale.docx
+  valid format:
+    - pdf
+    - docx
+---
+event: form_38_male
+question: Here are your documents.
+subquestion: "Please save these and click 'Continue' for the next set of documents."
+attachment:
+  name: Adoption Statement
+  filename: Form 38
+  docx template file: form_38_male.docx
+  valid format:
+    - pdf
+    - docx
+---
+event: form_38_female
+question: Here are your documents.
+subquestion: "Please save these and click 'Continue' for the next set of documents."
+attachment:
+  name: Adoption Statement
+  filename: Form 38
+  docx template file: form_38_female.docx
+  valid format:
+    - pdf
+    - docx
