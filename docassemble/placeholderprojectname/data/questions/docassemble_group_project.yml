@@ -1,6 +1,6 @@
 metadata:
   title: |
-    Title
+    [placeholder] Adoption App 
   short title: |
     Short title 
   description: |
@@ -14,8 +14,6 @@ metadata:
       organization: COR-LAW-2215 Digital Intelligence for Lawyers
   revision_date: 2020-10-12
 ---
-<<<<<<< HEAD
-=======
 modules:
   .validation
 ---
@@ -27,6 +25,7 @@ objects:
 ---
 mandatory: True
 code: |
+  rejectionMsg = ""
   applicant.isForeigner = False
   if applicant.nationality != "SG":
     applicant.isForeigner = True
@@ -34,6 +33,9 @@ code: |
   if applicant.is_applying_with_spouse:
     if not spouse.consents:
       rejectionPage
+      
+  if not applicant.hasSelectedChild:
+    rejectionPage
   summaryPage
 
 ---
@@ -54,6 +56,7 @@ fields:
     code: | 
       countries_list()
   - "NRIC/FIN No.": applicant.nric
+    validate: check_nric
   - "Residential address": applicant.address
     address autocomplete: True
   - "Is there anyone who resides in this address together with you?": co_resident
@@ -108,6 +111,41 @@ fields:
     datatype: yesnoradio
     show if: applicant.is_applying_with_spouse
 ---
+question: |
+  Child's Information
+fields:
+  - "Do you have a child in mind to adopt?": applicant.hasSelectedChild
+    datatype: yesnoradio
+  - "First Name of the child": child.name.first
+    datatype: text
+    show if: applicant.hasSelectedChild
+  - "Last Name of the child": child.name.last
+    datatype: text
+    show if: applicant.hasSelectedChild
+  - "Date of birth": child.birthdate
+    datatype: date
+    show if: applicant.hasSelectedChild
+  - "Age of the child": child.age
+    datatype: integer
+    show if: applicant.hasSelectedChild
+  - "Gender of the child": child.gender
+    input type: radio
+    choices:
+      - Male
+      - Female
+    show if: applicant.hasSelectedChild
+  - "Nationality of the child": child.nationality
+    code: | 
+      countries_list()
+    show if: applicant.hasSelectedChild
+  - "Race of the child": child.race
+    show if: applicant.hasSelectedChild
+  - "Marital status of the child": child.maritalstatus
+    show if: applicant.hasSelectedChild
+  - "Present address": child.address
+    address autocomplete: True
+    show if: applicant.hasSelectedChild
+---
 event: summaryPage
 question: Summary
 subquestion: ${applicant}
@@ -115,5 +153,4 @@ subquestion: ${applicant}
 ---
 event: rejectionPage
 question: Rejection Page 
-subquestion: fill this in 
->>>>>>> main
+subquestion: ${rejectionMsg}
