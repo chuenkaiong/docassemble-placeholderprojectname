@@ -1,5 +1,5 @@
 import re
-# from docassemble.base.util import *
+from docassemble.base.util import *
 
 def check_nric(nric):
     nric = nric.upper()
