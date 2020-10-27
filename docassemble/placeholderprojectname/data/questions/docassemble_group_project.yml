@@ -22,6 +22,8 @@ objects:
   spouse: Individual
   child: Individual
   co_resident: Individual
+  father: Individual
+  mother: Individual
 ---
 mandatory: True
 code: |
@@ -35,7 +37,10 @@ code: |
       rejectionPage
       
   if not applicant.hasSelectedChild:
-    rejectionPage
+    childNotSelectedPage
+  if child.nationality == "SG":
+    child.birthcertificate_number
+  
   summaryPage
 
 ---
@@ -59,6 +64,15 @@ fields:
     validate: check_nric
   - "Residential address": applicant.address
     address autocomplete: True
+  - "Is your mailing address the same as your residential address?": mailing_address
+    datatype: yesnoradio
+  - "Mailing address": applicant.address.mailing
+    address autocomplete: True
+    show if: 
+      variable: mailing_address
+      is: False
+    help: |
+      Your mailing address must be in Singapore.
   - "Is there anyone who resides in this address together with you?": co_resident
     datatype: yesnoradio
   - "Co-resident name": co_resident.name
@@ -66,7 +80,7 @@ fields:
     show if: co_resident
   - "Occupation": applicant.occupation
     datatype: text
-  - "Is there any special relationship between you and the child you want to adopt?": relationship
+  - "Is there any special relationship between you and the child you want to adopt?": applicant.relationship_with_child
     datatype: text
 ---
 question: |
@@ -122,6 +136,12 @@ fields:
   - "Last Name of the child": child.name.last
     datatype: text
     show if: applicant.hasSelectedChild
+  - "Do you wish to give the child a new name?": child_newname
+    datatype: yesnoradio
+    show if: applicant.hasSelectedChild
+  - "New name": childnewname
+    datatype: text
+    show if: child_newname 
   - "Date of birth": child.birthdate
     datatype: date
     show if: applicant.hasSelectedChild
@@ -145,12 +165,27 @@ fields:
   - "Present address": child.address
     address autocomplete: True
     show if: applicant.hasSelectedChild
+  - "Is the child entitled to any property?": child.isEntitledToProperty
+    show if: applicant.hasSelectedChild
+---
+question: |
+  Birth Certificate Information
+fields:
+  - "Birth certificate number": child.birthcertificate_number
+    datatype: text
+  - "Date of birth certificate": child.birthcertificate_date
+    datatype: date
 ---
 event: summaryPage
 question: Summary
 subquestion: ${applicant}
-
 ---
 event: rejectionPage
 question: Rejection Page 
 subquestion: ${rejectionMsg}
+---
+event: childNotSelectedPage
+question: Interview Paused
+review:
+  - I have a child in mind: applicant.hasSelectedChild
+    button: This interview will be paused until you select a child to adopt. Remember to login to save your answers before leaving this page!
