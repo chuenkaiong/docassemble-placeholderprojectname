@@ -15,7 +15,8 @@ metadata:
   revision_date: 2020-10-12
 ---
 modules:
-  .validation
+  - .validation
+  - .reject
 ---
 objects:
   applicant: Individual
@@ -29,43 +30,93 @@ mandatory: True
 code: |
   # REMOVE THIS
   payment = True
+  nature_of_payment = "blabla"
   
-  rejectionMsg = ""
-  applicant.isForeigner = False
-  if applicant.nationality != "SG":
-    applicant.isForeigner = True
+  if not attendedPAB:
+    msg = reject("noPAB")
+    softRejectPage
   
-  if applicant.is_applying_with_spouse:
-    if not spouse.consents:
-      rejectionPage
-      
   if not applicant.hasSelectedChild:
     childNotSelectedPage
   if child.nationality == "SG":
     child.birthcertificate_number
   
-  father.name.first
-  mother.name.first
+  if child.adoptedFromMSF or child.nationality != "SG":
+    if not doneHSR:
+      msg = reject("needHSR")
+      softRejectPage
+ 
+  if applicant.nationality == "GB":
+    msg = "UK reject"
+    hardRejectPage
   
-  #if applicant.is_applying_with_spouse:
-  #  if child.nationality == "SG":
-  #    form_37_2app_childinsg
-  #  else:
-  #    form_37_2app_childoutsidesg
-  #else:
-  #  if child.nationality == "SG":
-  #    form_37_1app_childinsg
-  #  else:
-  #    form_37_1app_childoutsidesg
+  EUList = ['IS', 'AL', 'AT', 'BA', 'BE', 'BG', 'CH', 'CY', 'DE', 'DK', 'EE', 'ES', 'FI', 'FR', 'GB', 'GR', 'HR', 'HU', 'IE', 'IS', 'IT', 'LT', 'LV', 'MK', 'MT', 'NL', 'NO', 'PL', 'PT', 'RO', 'RS', 'SE', 'SI']
+  
+  if applicant.nationality != "SG" and not applicant.hasEndorsement:
+    msg = reject("needEndorsement")
+    if applicant.nationality in EUList:
+      msg = reject("needEndorsementEU")
+    softRejectPage
+  
+  if applicant.isMarried and not applicant.is_applying_with_spouse:
+    if not spouse.consents:
+      msg = reject("noSpouseConsent")
+      softRejectPage
+   
+  if applicant.gender == "Male" and not applicant.isMarried and child.gender == "Female":
+    msg = reject("applicantIsPedo")
+    hardRejectPage
+  
+  if not applicant.isMarried:
+    applicant.is_applying_with_spouse = False
+    
+  thresholdAge = child.age + 50
+  if applicant.age > thresholdAge:
+    msg = reject("ageGap")
+    hardRejectPage
+  if applicant.is_applying_with_spouse and spouse.age > thresholdAge:
+    msg = reject("ageGap")
+    hardRejectPage
+  
+  minAge = child.age + 21
+  if applicant.age < minAge or applicant.age < 25:
+    msg = reject("ageGapSmall")
+    softRejectPage
+  if applicant.is_applying_with_spouse:
+    if spouse.age < minAge or spouse.age < 25:
+      msg = reject("ageGapSmall")
+      softRejectPage
+   
+  if applicant.is_applying_with_spouse:
+   if child.nationality == "SG":
+     form37doc = form_37_2app_childinsg
+   else:
+     form37doc = form_37_2app_childoutsidesg
+  else:
+   if child.nationality == "SG":
+     form37doc = form_37_1app_childinsg
+   else:
+     form37doc = form_37_1app_childoutsidesg
   
   if applicant.is_applying_with_spouse:
-    form_38_malefemale
+    form38doc = form_38_malefemale
   elif applicant.gender == "Male":
-    form_38_male
+    form38doc = form_38_male
   else: 
-    form_38_female
+    form38doc = form_38_female
+
+  docPage
+---
+question: Pre-Adoption Briefing 
+subquestion: Have you attended a Pre-Adoption Briefing?
+yesno: attendedPAB
+---
+question: Endorsement
+subquestion: Have you obtained a letter of endorsement for the adoption from your home country?
+yesno: applicant.hasEndorsement
 ---
 question: Your Details
+subquestion: If you and your spouse are applying together, this section should be filled out by the husband. 
 fields:
   - "First Name": applicant.name.first
     datatype: text
@@ -83,6 +134,8 @@ fields:
       countries_list()
   - "NRIC/FIN No.": applicant.nric
     validate: check_nric
+  - "Are you currently married?": applicant.isMarried
+    datatype: yesnoradio
   - "Residential address": applicant.address
     address autocomplete: True
   - "Is your mailing address the same as your residential address?": mailing_address
@@ -94,14 +147,15 @@ fields:
       is: False
     help: |
       Your mailing address must be in Singapore.
-  - "Is there anyone who resides in this address together with you?": co_resident
+  - "Is there anyone who resides in this address together with you?": co_resident.exists
     datatype: yesnoradio
   - "Co-resident name": co_resident.name
     datatype: text
-    show if: co_resident
-  - "Occupation": applicant.occupation
+    show if: co_resident.exists
+  - "What is your occupation?": applicant.occupation
     datatype: text
-  - "Is there any special relationship between you and the child you want to adopt?": applicant.relationship_with_child
+  - "Please state any relationship between you and the child. If there is none, please state None.": applicant.relationship_with_child
+    default: None
     datatype: text
 ---
 question: |
@@ -139,53 +193,56 @@ fields:
   - "Occupation": spouse.occupation
     datatype: text
     show if: applicant.is_applying_with_spouse
-  - "Is there any special relationship between you and the child you want to adopt?": spouse.relationship_with_child
+  - "Please state any relationship between your spouse and the child. If there is none, please state None.": spouse.relationship_with_child
+    default: None
     datatype: text
     show if: applicant.is_applying_with_spouse
-  - "Does your spouse consent to the adoption?": spouse.consents
+---
+question: Spousal consent
+fields:
+  - Does your spouse consent to you adopting the child on your own?: spouse.consents
     datatype: yesnoradio
-    show if: applicant.is_applying_with_spouse
+---
+question: Child Selection
+fields:
+  - "Do you have a child in mind to adopt?": applicant.hasSelectedChild
+    datatype: yesnoradio
+  - Will you be adopting the child from MSF?: child.adoptedFromMSF
+    datatype: yesnoradio
+    show if: applicant.hasSelectedChild
+---
+question: Home Study Report
+subquestion: Have you obtained a favourable Home Study Report (HSR)?
+yesno: doneHSR
 ---
 question: |
   Child's Information
 fields:
-  - "Do you have a child in mind to adopt?": applicant.hasSelectedChild
-    datatype: yesnoradio
   - "First Name of the child": child.name.first
     datatype: text
-    show if: applicant.hasSelectedChild
   - "Last Name of the child": child.name.last
     datatype: text
-    show if: applicant.hasSelectedChild
   - "Do you wish to give the child a new name?": child_newname
     datatype: yesnoradio
-    show if: applicant.hasSelectedChild
   - "New name": childnewname
     datatype: text
     show if: child_newname 
   - "Date of birth": child.birthdate
     datatype: date
-    show if: applicant.hasSelectedChild
   - "Age of the child": child.age
     datatype: integer
-    show if: applicant.hasSelectedChild
   - "Gender of the child": child.gender
     input type: radio
     choices:
       - Male
       - Female
-    show if: applicant.hasSelectedChild
   - "Nationality of the child": child.nationality
     code: | 
       countries_list()
-    show if: applicant.hasSelectedChild
   - "Race of the child": child.race
-    show if: applicant.hasSelectedChild
   - "Marital status of the child": child.maritalstatus
-    show if: applicant.hasSelectedChild
   - "Present address": child.address
     address autocomplete: True
-    show if: applicant.hasSelectedChild
   - "Is the child entitled to any property?": child.isEntitledToProperty 
     datatype: yesnoradio
   - "Is the child in the actual custody (or under the guardianship) of the Applicant(s)?": child_in_custody
@@ -252,93 +309,92 @@ fields:
   - "Date of birth certificate": child.birthcertificate_date
     datatype: date
 ---
-event: summaryPage
-question: Summary
-subquestion: ${applicant}
----
-event: rejectionPage
-question: Rejection Page 
-subquestion: ${rejectionMsg}
----
 event: childNotSelectedPage
 question: Interview Paused
-review:
-  - I have a child in mind: applicant.hasSelectedChild
-    button: This interview will be paused until you select a child to adopt. Remember to login to save your answers before leaving this page!
+subquestion: |
+  You must select a child to adopt before you can continue the interview. Don't worry - if you're logged in, you can close the interview and return here later!
+back button: True
+back button label: I have a child in mind
 ---
-event: form_37_1app_childinsg
+event: softRejectPage
+question: Interview Paused
+subquestion: |
+  ${msg} Don't worry - if you're logged in, you can close the interview and return here later!
+back button: True
+
+---
+event: hardRejectPage
+question: Sorry, you are not eligible for adoption.
+subquestion: |
+  ${msg}
+---
+event: docPage
 question: Here are your documents.
-subquestion: "Please save these and click 'Continue' for the next set of documents."
+subquestion: Please download and save them, then hit Continue to find out your next steps.
+attachment code: |
+  [form37doc, form38doc]
+continue button field: successPage
+---
 attachment:
-  name: Form 37 (Originating Summons)
+  name: Originating Summons
   filename: Form 37
   docx template file: form_37_1app_childinsg.docx
+  variable name: form_37_1app_childinsg
   valid format:
     - pdf
     - docx
 ---
-event: form_37_1app_childoutsidesg
-question: Here are your documents.
-subquestion: "Please save these and click 'Continue' for the next set of documents."
 attachment:
-  name: Form 37 (Originating Summons)
+  name: Originating Summons
   filename: Form 37
   docx template file: form_37_1app_childoutsidesg.docx
+  variable name: form_37_1app_childoutsidesg
   valid format:
     - pdf
     - docx
 ---
-event: form_37_2app_childinsg
-question: Here are your documents.
-subquestion: "Please save these and click 'Continue' for the next set of documents."
 attachment:
-  name: Form 37 (Originating Summons)
+  name: Originating Summons
   filename: Form 37
   docx template file: form_37_2app_childinsg.docx
+  variable name: form_37_2app_childinsg
   valid format:
     - pdf
     - docx
 ---
-event: form_37_2app_childoutsidesg
-question: Here are your documents.
-subquestion: "Please save these and click 'Continue' for the next set of documents."
 attachment:
-  name: Form 37 (Originating Summons)
+  name: Originating Summons
   filename: Form 37
   docx template file: form_37_2app_childoutsidesg.docx
+  variable name: form_37_2app_childoutsidesg
   valid format:
     - pdf
     - docx
 ---
-event: form_38_malefemale
-question: Here are your documents.
-subquestion: "Please save these and click 'Continue' for the next set of documents."
-attachment:
-  name: Adoption Statement
-  filename: Form 38
-  docx template file: form_38_malefemale.docx
-  valid format:
-    - pdf
-    - docx
----
-event: form_38_male
-question: Here are your documents.
-subquestion: "Please save these and click 'Continue' for the next set of documents."
 attachment:
   name: Adoption Statement
   filename: Form 38
   docx template file: form_38_male.docx
+  variable name: form_38_male
   valid format:
     - pdf
     - docx
 ---
-event: form_38_female
-question: Here are your documents.
-subquestion: "Please save these and click 'Continue' for the next set of documents."
 attachment:
   name: Adoption Statement
   filename: Form 38
   docx template file: form_38_female.docx
+  variable name: form_38_female
   valid format:
     - pdf
     - docx
+---
+attachment:
+  name: Adoption Statement
+  filename: Form 38
+  docx template file: form_38_malefemale.docx
+  variable name: form_38_malefemale
+  valid format:
+    - pdf
+    - docx
+---
